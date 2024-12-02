@@ -93,8 +93,6 @@ MongoClient.connect(URL)
             });
           }
         }
-
-
         // Save order to the database
         const order = {
           name,
@@ -104,15 +102,6 @@ MongoClient.connect(URL)
           createdAt: new Date(),
         };
         const orderResult = await orders.insertOne(order);
-
-
-        // Reduce lesson spaces
-        // for (const lesson of lessonIDs) {
-        //   await lessons.updateOne(
-        //     { _id: new ObjectId(lesson) },
-        //     { $inc: { spaces: -spaces[lesson] } }
-        //   );
-        // }
 
         res.status(201).json({ message: 'Order created successfully', order: orderResult });
       } catch (err) {
@@ -129,7 +118,38 @@ MongoClient.connect(URL)
         res.status(500).json({ error: err.message });
       }
     });
+
+    // Search API
+    app.get('/api/search', async (req, res) => {
+        const { query } = req.query;
+        console.log("query: ", query)
+    
+        if (!query) {
+        return res.status(400).json({ message: 'Query parameter is required.' });
+        }
+    
+        try {
+        const regex = new RegExp(query, 'i'); // Case-insensitive regex
+        const results = await lessons.find({
+            $or: [
+            { subject: { $regex: regex } },
+            { location: { $regex: regex } },
+            { price: { $regex: regex } },
+            { spaces: { $regex: regex } },
+            ],
+        })
+        .toArray();
+        
+        res.json(results); // Send results back to the front end
+        } catch (error) {
+        console.error('Error during search:', error);
+        res.status(500).json({ message: 'Internal server error.' });
+        }
+    });
+
   })
   .catch((err) => {
     console.error(`Error connecting to MongoDB: ${err.message}`);
   });
+
+  
